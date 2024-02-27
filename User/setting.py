@@ -4,7 +4,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 postgresSQL_password=getenv('postgresSQL_password')
-database_name=getenv('database_name')
+user_database_name=getenv('user_database_name')
 redis_url=getenv('redis_url')
 email_sender=getenv('email_sender')
 email_password=getenv('email_password')

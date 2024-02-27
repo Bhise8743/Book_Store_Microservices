@@ -1,12 +1,11 @@
 from sqlalchemy.orm import declarative_base, Session
 from sqlalchemy import BigInteger, Integer, String, Column, create_engine, Boolean
 
-from User.setting import postgresSQL_password, database_name
+from User.setting import postgresSQL_password,user_database_name
 
-engine = create_engine(f'postgresql+psycopg2://postgres:{postgresSQL_password}@localhost:5432/{database_name}')
+engine = create_engine(f'postgresql+psycopg2://postgres:{postgresSQL_password}@localhost:5432/{user_database_name}')
 session = Session(engine)
 Base = declarative_base()
-
 
 def get_db():
     db = session
