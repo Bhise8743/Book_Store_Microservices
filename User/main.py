@@ -11,7 +11,7 @@
 @Title :  Book Store with Microservices
 
 """
-from fastapi import FastAPI, Depends, Response, status, HTTPException
+from fastapi import FastAPI, Depends, Response, status, HTTPException,Request
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 from User.schema import UserSchema, LoginSchema
@@ -43,9 +43,9 @@ def add_user(body: UserSchema, response: Response, db: Session = Depends(get_db)
         db.add(user_data)
         db.commit()
         db.refresh(user_data)
-        # token = JWT.data_encoding({'user_id': user_data.id})
-        # verification_link = f'http://127.0.0.1:8080/user/verify?token={token}'
-        # email_notification(user_data.email, verification_link, 'Email Verification')
+        token = JWT.data_encoding({'user_id': user_data.id})
+        verification_link = f'http://127.0.0.1:8080/verify?token={token}'
+        email_notification(user_data.email, verification_link, 'Email Verification')
         return {'message': "User Registration Successfully ", 'status': 201, 'data': user_data}
     except IntegrityError as ex:
         response.status_code = status.HTTP_400_BAD_REQUEST
@@ -72,9 +72,9 @@ def user_login(body: LoginSchema, response: Response, db: Session = Depends(get_
             raise HTTPException(detail="Invalid Password", status_code=status.HTTP_400_BAD_REQUEST)
         if not user_data.is_verified:
             raise HTTPException(detail="Email is Not Verified", status_code=status.HTTP_400_BAD_REQUEST)
-
-        # token = JWT.data_encoding({'user_id': user_data.id})
-        return {'message': "Login successfully ", 'status': 200}  # , 'access_token': token}
+        global token
+        token = JWT.data_encoding({'user_id': user_data.id})
+        return {'message': "Login successfully ", 'status': 200}
     except Exception as ex:
         response.status_code = status.HTTP_400_BAD_REQUEST
         return {'message': str(ex), 'status': 400}
@@ -118,8 +118,8 @@ def forget_username_password(email: str, body: LoginSchema, response: Response, 
             raise HTTPException(detail="This user is not present ", status_code=status.HTTP_400_BAD_REQUEST)
         if not user_data.is_verified:
             raise HTTPException(detail='You are not a verified user', status_code=status.HTTP_400_BAD_REQUEST)
-        token = JWT.data_encoding({'username': body.user_name, 'password': body.password, 'email': email})
-        verification_link = f'http://127.0.0.1:8080/user/forget?token={token}'
+        token = JWT.data_encoding({'username': body.user_name, 'password': body.password, 'user_id': user_data.id})
+        verification_link = f'http://127.0.0.1:8000/forget?token={token}'
         email_notification(email, verification_link, 'Forget Username and Password')
 
         return {'message': 'Forget username and password send the mail successfully', 'status': 200}
@@ -140,7 +140,7 @@ def forget_username_password(token: str, response: Response, db: Session = Depen
     """
     try:
         data = JWT.data_decoding(token)
-        user_data = db.query(User).filter_by(email=data['email'])
+        user_data = db.query(User).filter_by(id=data['user_id']).one_or_none()
         user_data.user_name = data['username']
         user_data.password = hash_password(data['password'])
         db.commit()
@@ -149,3 +149,20 @@ def forget_username_password(token: str, response: Response, db: Session = Depen
     except Exception as ex:
         response.status_code = status.HTTP_400_BAD_REQUEST
         return {'message': str(ex), 'status': 400}
+
+
+@app.get('/auth_user',status_code=status.HTTP_200_OK)
+def auth_user(request:Request,token:str=None):
+    return {'message':"auth successfully",'status':200}
+
+
+
+
+
+
+
+
+
+
+
+
