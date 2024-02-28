@@ -1,9 +1,9 @@
 from pydantic import BaseModel
 
 
-class Book(BaseModel):
-    book_name : str
-    author : str
-    quantity : int
-    price : int
+class BookSchema(BaseModel):
+    book_name: str
+    author: str
+    price: int
+    quantity: int
     user_id : int
