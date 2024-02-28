@@ -1,8 +1,8 @@
 from sqlalchemy.orm import Session, declarative_base
 from sqlalchemy import Column, Integer, BigInteger, String, create_engine
-from Book.setting import postgresSQL_password, book_database_name
+from Book.setting import setting
 
-engine = create_engine(f'postgresql+psycopg2://postgres:{postgresSQL_password}@localhost:5432/{book_database_name}')
+engine = create_engine(f'postgresql+psycopg2://postgres:{setting.postgresSQL_password}@localhost:5432/{setting.book_database_name}')
 session = Session(engine)
 Base = declarative_base()
 

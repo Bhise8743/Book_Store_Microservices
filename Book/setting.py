@@ -1,7 +1,12 @@
-from os import getenv
-from dotenv import load_dotenv
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
-load_dotenv()
 
-postgresSQL_password=getenv('postgresSQL_password')
-book_database_name=getenv('book_database_name')
+class Settings(BaseSettings):
+    model_config = SettingsConfigDict(env_file='.env',extra='ignore')
+    book_database_name: str
+    postgresSQL_password: int
+    secret_key: str
+    jwt_algo: str
+
+
+setting = Settings()

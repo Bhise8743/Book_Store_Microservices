@@ -1,23 +1,32 @@
-from fastapi import FastAPI, status, Response, Depends, Path, HTTPException
+from fastapi import FastAPI,Security, status, Response, Depends, Path, HTTPException,Request
 from Book.schema import BookSchema
+from fastapi.security import APIKeyHeader
 from sqlalchemy.orm import Session
 from Book.model import Book, get_db
-import requests as rq
-app = FastAPI(title='Book Store ')
+from Book.utils import jwt_authentication,logger
+
+app = FastAPI(title='Book Store ',dependencies=[Security(APIKeyHeader(name='authorization')),Depends(jwt_authentication)])
 
 
 @app.post('/add', status_code=status.HTTP_200_OK)
-def add_book(body: BookSchema, response: Response, db: Session = Depends(get_db)):
+def add_book(body: BookSchema,request:Request, response: Response, db: Session = Depends(get_db)):
     try:
-        response=rq.get('http://127.0.0.1:8080/auth_user')
-        print(response.json())
+        print(request.state.user)
+        user_data = request.state.user
+        if not user_data['is_super_user']:
+            raise HTTPException(detail="You are not SuperUser",status_code=status.HTTP_400_BAD_REQUEST)
+        if not request.state.user.is_verified:
+            raise HTTPException(detail='You are not verified user',status_code=status.HTTP_400_BAD_REQUEST)
+
         data = body.model_dump()
+        data.update({'user_id':request.state.user.id})
         book_data = Book(**data)
         db.add(book_data)
         db.commit()
         db.refresh(book_data)
         return {'message': 'Book added successfully ', 'status': 201}
     except Exception as ex:
+        logger.exception(ex)
         response.status_code = status.HTTP_400_BAD_REQUEST
         return {'message': str(ex), 'status': 400}
 
@@ -31,6 +40,7 @@ def get_book_using_id(response: Response, db: Session = Depends(get_db),
             raise HTTPException(detail='This book id is not present', status_code=status.HTTP_404_NOT_FOUND)
         return {'message': 'Book Found successfully', 'status': 200, 'data': book_data}
     except Exception as ex:
+        logger.exception(ex)
         response.status_code = status.HTTP_400_BAD_REQUEST
         return {'message': str(ex), 'status': 400}
 
@@ -44,6 +54,7 @@ def get_all_books(response: Response, db: Session = Depends(get_db),user_id : in
 
         return {'message': 'Books Found', 'status': 200, 'data': books_data}
     except Exception as ex:
+        logger.exception(ex)
         response.status_code = status.HTTP_400_BAD_REQUEST
         return {'message': str(ex), 'status': 400}
 
@@ -60,6 +71,7 @@ def update_book(body: BookSchema, response: Response, db: Session = Depends(get_
         db.refresh(book_data)
         return {'message': "Book Updated successfully ", 'status': 200}
     except Exception as ex:
+        logger.exception(ex)
         response.status_code = status.HTTP_400_BAD_REQUEST
         return {'message': str(ex), 'status': 400}
 
@@ -74,5 +86,6 @@ def delete_book(response: Response, db: Session = Depends(get_db), book_id=Path(
         db.commit()
         return {'message': "Book Deleted Successfully", 'status': 200}
     except Exception as ex:
+        logger.exception(ex)
         response.status_code = status.HTTP_400_BAD_REQUEST
         return {'message': str(ex), 'status': 400}

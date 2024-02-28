@@ -6,4 +6,4 @@ class BookSchema(BaseModel):
     author: str
     price: int
     quantity: int
-    user_id : int
+
