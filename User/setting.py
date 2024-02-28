@@ -1,13 +1,15 @@
-from os import getenv
-from dotenv import load_dotenv
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
-load_dotenv()
+class Settings(BaseSettings):
+    model_config = SettingsConfigDict(env_file='.env',extra='ignore')
+    user_database_name: str
+    postgresSQL_password: int
+    secret_key: str
+    jwt_algo: str
+    redis_url: str
+    email_sender: str
+    email_password: str
+    super_key: str
 
-postgresSQL_password=getenv('postgresSQL_password')
-user_database_name=getenv('user_database_name')
-redis_url=getenv('redis_url')
-email_sender=getenv('email_sender')
-email_password=getenv('email_password')
-super_key=getenv('super_key')
-secret_key=getenv('secret_key')  # import secrets.token_hex(32)
-jwt_algo=getenv('jwt_algo')
+
+setting = Settings()

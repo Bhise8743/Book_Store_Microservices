@@ -16,8 +16,8 @@ from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 from User.schema import UserSchema, LoginSchema
 from User.model import get_db, User
-from User.utils import verify_password, hash_password, JWT
-from User.setting import super_key
+from User.utils import verify_password, hash_password, JWT,logger
+from User.setting import setting
 from User.task import email_notification
 
 app = FastAPI(title='Book Store')
@@ -36,7 +36,7 @@ def add_user(body: UserSchema, response: Response, db: Session = Depends(get_db)
         data = body.model_dump()
         data['password'] = hash_password(data['password'])
         user_super_key = data['super_key']
-        if user_super_key == super_key:  # key is in the form of string
+        if user_super_key == setting.super_key:  # key is in the form of string
             data.update({'is_super_user': True})
         data.pop('super_key')
         user_data = User(**data)
@@ -45,12 +45,14 @@ def add_user(body: UserSchema, response: Response, db: Session = Depends(get_db)
         db.refresh(user_data)
         token = JWT.data_encoding({'user_id': user_data.id})
         verification_link = f'http://127.0.0.1:8080/verify?token={token}'
-        email_notification(user_data.email, verification_link, 'Email Verification')
+        email_notification.delay(user_data.email, verification_link, 'Email Verification')
         return {'message': "User Registration Successfully ", 'status': 201, 'data': user_data}
     except IntegrityError as ex:
+        logger.exception(ex)
         response.status_code = status.HTTP_400_BAD_REQUEST
         return {'message': 'Username or Email is already exist', 'status': 400}
     except Exception as ex:
+        logger.exception(ex)
         response.status_code = status.HTTP_400_BAD_REQUEST
         return {'message': str(ex), 'status': 400}
 
@@ -72,10 +74,10 @@ def user_login(body: LoginSchema, response: Response, db: Session = Depends(get_
             raise HTTPException(detail="Invalid Password", status_code=status.HTTP_400_BAD_REQUEST)
         if not user_data.is_verified:
             raise HTTPException(detail="Email is Not Verified", status_code=status.HTTP_400_BAD_REQUEST)
-        global token
         token = JWT.data_encoding({'user_id': user_data.id})
-        return {'message': "Login successfully ", 'status': 200}
+        return {'message': "Login successfully ", 'status': 200,'access_token':token}
     except Exception as ex:
+        logger.exception(ex)
         response.status_code = status.HTTP_400_BAD_REQUEST
         return {'message': str(ex), 'status': 400}
 
@@ -98,6 +100,7 @@ def email_verification(token: str, response: Response, db: Session = Depends(get
         db.commit()
         return {'message': "Email Verified Successfully", 'status': 200}
     except Exception as ex:
+        logger.exception(ex)
         response.status_code = status.HTTP_400_BAD_REQUEST
         return {'message': str(ex), 'status': 400}
 
@@ -124,6 +127,7 @@ def forget_username_password(email: str, body: LoginSchema, response: Response, 
 
         return {'message': 'Forget username and password send the mail successfully', 'status': 200}
     except Exception as ex:
+        logger.exception(ex)
         response.status_code = status.HTTP_400_BAD_REQUEST
         return {'message': str(ex), 'status': 400}
 
@@ -147,13 +151,25 @@ def forget_username_password(token: str, response: Response, db: Session = Depen
         db.refresh(user_data)
         return {'message': "Username and Password is changed successfully ", 'status': 200}
     except Exception as ex:
+        logger.exception(ex)
         response.status_code = status.HTTP_400_BAD_REQUEST
         return {'message': str(ex), 'status': 400}
 
 
 @app.get('/auth_user',status_code=status.HTTP_200_OK)
-def auth_user(request:Request,token:str=None):
-    return {'message':"auth successfully",'status':200}
+def auth_user(response:Response,token:str=None,db:Session = Depends(get_db)):
+    try:
+        data = JWT.data_decoding(token)
+        user_data = db.query(User).filter_by(id=data.get('user_id')).one_or_none()
+        if user_data is None:
+            raise HTTPException(detail="This user is not present ",status_code=status.HTTP_404_NOT_FOUND)
+        return {'message':"User Found",'status':200,'user_data':user_data}
+    except Exception as ex:
+        logger.exception(ex)
+        response.status_code=status.HTTP_400_BAD_REQUEST
+        return {'message':str(ex),'status':400}
+
+
 
 
 
