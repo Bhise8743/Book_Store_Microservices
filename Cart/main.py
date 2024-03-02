@@ -1,3 +1,14 @@
+"""
+@Author: Omkar Bhise
+
+@Date: 2024-02-27 11:30:00
+
+@Last Modified by: Omkar Bhise
+
+@Last Modified time: 2024-02-29 11:30:00
+
+@Title :  Cart Microservices
+"""
 from fastapi import FastAPI, status, Request, Response, Depends, Security, HTTPException
 from fastapi.security import APIKeyHeader
 from sqlalchemy.orm import Session
@@ -11,7 +22,15 @@ app = FastAPI(title='Book Store',
 
 
 @app.post('/add', status_code=status.HTTP_201_CREATED)
-def add_cart(body: CartItemsSchema, request: Request, db: Session = Depends(get_db)):
+def add_cart(body: CartItemsSchema,response:Response, request: Request, db: Session = Depends(get_db)):
+    """
+        Description: This function is used to add the book in the cart and cart items
+        Parameter: body : CartItemsSchema  => Schema of the cart items
+                   request : Request of the user
+                   response : Response  it response to the user
+                   db: Session = Depends on the get_db  i.e. he yield the database
+        Return: message and status code in JSON format
+    """
     try:
         user_data = request.state.user
         # print(request.state.user)
@@ -23,18 +42,17 @@ def add_cart(body: CartItemsSchema, request: Request, db: Session = Depends(get_
             db.commit()
             db.refresh(cart_data)
         response = rq.get(f'http://127.0.0.1:8008/share_book/{body.book_id}',headers={'authorization':request.headers.get('authorization')})
-        print(response.json())
-        book_data = response.json()['book_data']
-        print("\n\n",book_data)
+        book_data = response.json().get('book_data')
         if book_data is None:
             raise HTTPException(detail='Book Not found', status_code=status.HTTP_404_NOT_FOUND)
-        books_price = book_data.price * body.quantity
+        books_price = book_data['price'] * body.quantity
         cart_items_data = db.query(CartItems).filter_by(book_id=body.book_id, cart_id=cart_data.id).one_or_none()
         if cart_items_data:
             cart_data.total_price -= cart_items_data.price
             cart_data.total_quantity -= cart_items_data.quantity
         else:
-            cart_items_data = CartItems({'book_id': body.book_id, 'cart_id': cart_data.id, 'quantity': 0, 'price': 0})
+            cart_items_data = CartItems(book_id= body.book_id, cart_id= cart_data.id, quantity= 0, price= 0)
+            db.add(cart_items_data)
             db.commit()
         cart_items_data.quantity = body.quantity
         cart_items_data.price = books_price
@@ -52,6 +70,13 @@ def add_cart(body: CartItemsSchema, request: Request, db: Session = Depends(get_
 
 @app.get('/get', status_code=status.HTTP_200_OK)
 def get_cart_data(response: Response, request: Request, db: Session = Depends(get_db)):
+    """
+        Description: This function is used to get the cart and cart items data
+        Parameter: request : request of the user
+                   response : Response  it response to the user
+                   db: Session = Depends on the get_db  i.e. he yield the database
+        Return: message and status code in JSON format
+    """
     try:
         cart_data = db.query(Cart).filter_by(user_id=request.state.user.id).one_or_none()
         if cart_data is None:
