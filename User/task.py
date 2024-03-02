@@ -1,7 +1,7 @@
 from celery import Celery
 import smtplib, ssl
 from email.message import EmailMessage
-from User.setting import setting
+from setting import setting
 
 celery = Celery(
     __name__,
