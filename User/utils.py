@@ -2,7 +2,7 @@ import pytz
 from fastapi import HTTPException, status
 from jose import JWTError, jwt
 from passlib.hash import pbkdf2_sha256
-from User.setting import setting
+from setting import setting
 from datetime import datetime, timedelta
 import logging
 logging.basicConfig(filename='./book_store_user.log', encoding='utf-8', level=logging.DEBUG,
