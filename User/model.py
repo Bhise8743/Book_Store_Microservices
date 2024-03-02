@@ -1,7 +1,7 @@
 from sqlalchemy.orm import declarative_base, Session
 from sqlalchemy import BigInteger, Integer, String, Column, create_engine, Boolean
 
-from User.setting import setting
+from setting import setting
 
 engine = create_engine(f'postgresql+psycopg2://postgres:{setting.postgresSQL_password}@localhost:5432/{setting.user_database_name}')
 session = Session(engine)
