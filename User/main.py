@@ -1,24 +1,22 @@
 """
-
 @Author: Omkar Bhise
 
 @Date: 2024-02-27 11:30:00
 
 @Last Modified by: Omkar Bhise
 
-@Last Modified time: 2024-02-27 11:30:00
+@Last Modified time: 2024-02-29 11:30:00
 
-@Title :  Book Store with Microservices
-
+@Title :  User Microservices
 """
 from fastapi import FastAPI, Depends, Response, status, HTTPException,Request
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
-from User.schema import UserSchema, LoginSchema
-from User.model import get_db, User
-from User.utils import verify_password, hash_password, JWT,logger
-from User.setting import setting
-from User.task import email_notification
+from schema import UserSchema, LoginSchema
+from model import get_db, User
+from utils import verify_password, hash_password, JWT,logger
+from setting import setting
+from task import email_notification
 
 app = FastAPI(title='Book Store')
 
@@ -43,9 +41,9 @@ def add_user(body: UserSchema, response: Response, db: Session = Depends(get_db)
         db.add(user_data)
         db.commit()
         db.refresh(user_data)
-        token = JWT.data_encoding({'user_id': user_data.id})
-        verification_link = f'http://127.0.0.1:8080/verify?token={token}'
-        email_notification.delay(user_data.email, verification_link, 'Email Verification')
+        # token = JWT.data_encoding({'user_id': user_data.id})
+        # verification_link = f'http://127.0.0.1:8080/verify?token={token}'
+        # email_notification.delay(user_data.email, verification_link, 'Email Verification')
         return {'message': "User Registration Successfully ", 'status': 201, 'data': user_data}
     except IntegrityError as ex:
         logger.exception(ex)
@@ -158,6 +156,13 @@ def forget_username_password(token: str, response: Response, db: Session = Depen
 
 @app.get('/auth_user',status_code=status.HTTP_200_OK)
 def auth_user(response:Response,token:str=None,db:Session = Depends(get_db)):
+    """
+        Description: This function is used to authenticate the user
+        Parameter: token : jwt (Json web token )  in that user_id and exp : time
+                   response : Response  it response to the user
+                   db: Session = Depends on the get_db  i.e. he yield the database
+        Return: message and status code in JSON format
+    """
     try:
         data = JWT.data_decoding(token)
         user_data = db.query(User).filter_by(id=data.get('user_id')).one_or_none()
