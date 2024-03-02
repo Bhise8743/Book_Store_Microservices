@@ -1,3 +1,14 @@
+"""
+@Author: Omkar Bhise
+
+@Date: 2024-02-27 11:30:00
+
+@Last Modified by: Omkar Bhise
+
+@Last Modified time: 2024-02-29 11:30:00
+
+@Title :  Book Microservices
+"""
 from fastapi import FastAPI, Security, status, Response, Depends, Path, HTTPException, Request
 from Book.schema import BookSchema
 from fastapi.security import APIKeyHeader
@@ -11,6 +22,14 @@ app = FastAPI(title='Book Store ',
 
 @app.post('/add', status_code=status.HTTP_201_CREATED, tags=["Book"])
 def add_book(body: BookSchema, request: Request, response: Response, db: Session = Depends(get_db)):
+    """
+       Description: This function is used to add the book in the database
+       Parameter: body : BookSchema  => Schema of the Book
+                  request : Request of the user
+                  response : Response  it response to the user
+                  db: Session = Depends on the get_db  i.e. he yield the database
+       Return: message and status code in JSON format
+   """
     try:
         print(request.state.user)
         user_data = request.state.user
@@ -35,6 +54,14 @@ def add_book(body: BookSchema, request: Request, response: Response, db: Session
 @app.get('/get/{book_id}', status_code=status.HTTP_200_OK, tags=["Book"])
 def get_book_using_id(request: Request, response: Response, db: Session = Depends(get_db),
                       book_id=Path(..., description="Enter the book id ")):
+    """
+       Description: This function is used to get the book data using book id
+       Parameter: body : LoginSchema  => Schema of the login
+                  request : Request of the user
+                  response : Response  it response to the user
+                  db: Session = Depends on the get_db  i.e. he yield the database
+       Return: message and status code in JSON format
+   """
     try:
         if not request.state.user['is_verified']:
             raise HTTPException(detail='Not a verified user', status_code=status.HTTP_400_BAD_REQUEST)
@@ -51,11 +78,16 @@ def get_book_using_id(request: Request, response: Response, db: Session = Depend
 
 @app.get('/get', status_code=status.HTTP_200_OK, tags=["Book"])
 def get_all_books(request: Request, response: Response, db: Session = Depends(get_db)):
+    """
+       Description: This function is used to get the all books of the store
+       Parameter: body : LoginSchema  => Schema of the login
+                  response : Response  it response to the user
+                  db: Session = Depends on the get_db  i.e. he yield the database
+       Return: message and status code in JSON format
+   """
     try:
-        print("Ho")
         if not request.state.user['is_verified']:
             raise HTTPException(detail='User is not verified ', status_code=status.HTTP_400_BAD_REQUEST)
-        print("Hi")
         books_data = db.query(Book).all()
         if books_data is None:
             raise HTTPException(detail='User Not Added any book', status_code=status.HTTP_400_BAD_REQUEST)
@@ -70,6 +102,14 @@ def get_all_books(request: Request, response: Response, db: Session = Depends(ge
 @app.put('/update/{book_id}', status_code=status.HTTP_200_OK, tags=["Book"])
 def update_book(body: BookSchema, request: Request, response: Response, db: Session = Depends(get_db),
                 book_id=Path(..., description="Enter the book id ")):
+    """
+       Description: This function is used to update book data using book id
+       Parameter: body : BookSchema  => Schema of the book
+                  request : Request of user
+                  response : Response  it response to the user
+                  db: Session = Depends on the get_db  i.e. he yield the database
+       Return: message and status code in JSON format
+   """
     try:
         if not request.state.user['is_verified']:
             raise HTTPException(detail='User is Not verified ', status_code=status.HTTP_400_BAD_REQUEST)
@@ -92,6 +132,13 @@ def update_book(body: BookSchema, request: Request, response: Response, db: Sess
 @app.delete('/del/{book_id}', status_code=status.HTTP_200_OK, tags=["Book"])
 def delete_book(request: Request, response: Response, db: Session = Depends(get_db),
                 book_id=Path(..., description="Enter the book id")):
+    """
+       Description: This function is used to delete the book using book id
+       Parameter: book_id : Book id
+                  response : Response  it response to the user
+                  db: Session = Depends on the get_db  i.e. he yield the database
+       Return: message and status code in JSON format
+   """
     try:
         if not request.state.user['is_verified']:
             raise HTTPException(detail='You are not verified user', status_code=status.HTTP_400_BAD_REQUEST)
@@ -112,6 +159,14 @@ def delete_book(request: Request, response: Response, db: Session = Depends(get_
 
 @app.get('/share_book/{book_id}', status_code=status.HTTP_200_OK)
 def share_book(book_id: int, response: Response, db: Session = Depends(get_db)):
+    """
+       Description: This function is used to share book to the cart
+       Parameter: book id  : Book id
+                  request : Request of the user
+                  response : Response  it response to the user
+                  db: Session = Depends on the get_db  i.e. he yield the database
+       Return: message and status code in JSON format
+   """
     try:
         book_data = db.query(Book).filter_by(id=book_id).one_or_none()
         if book_data is None:
